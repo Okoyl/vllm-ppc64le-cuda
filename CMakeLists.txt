@@ -234,6 +234,25 @@ endif()
 #
 
 #
+# uvm_allocator extension (cudaMallocManaged for NVLink/Grace Hopper systems)
+#
+
+set(VLLM_UVM_EXT_SRC
+  "csrc/uvm_allocator.cpp")
+
+if(VLLM_GPU_LANG STREQUAL "CUDA")
+  message(STATUS "Enabling UVM allocator extension.")
+  define_extension_target(
+    uvm_allocator
+    DESTINATION vllm
+    LANGUAGE CXX
+    SOURCES ${VLLM_UVM_EXT_SRC}
+    LIBRARIES CUDA::cudart
+    USE_SABI 3.8
+    WITH_SOABI)
+endif()
+
+#
 # cumem_allocator extension
 #
 

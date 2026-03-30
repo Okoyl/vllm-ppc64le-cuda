@@ -191,8 +191,12 @@ class CudaPlatformBase(Platform):
         cls, device: torch.types.Device | None = None
     ) -> float:
         torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats(device)
-        return torch.cuda.max_memory_allocated(device)
+        try:
+            torch.cuda.reset_peak_memory_stats(device)
+            return torch.cuda.max_memory_allocated(device)
+        except RuntimeError:
+            free, total = torch.cuda.mem_get_info(device)
+            return total - free
 
     @classmethod
     def get_valid_backends(

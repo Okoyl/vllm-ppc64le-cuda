@@ -64,7 +64,11 @@ class BaseModelLoader(ABC):
             # Log peak GPU memory after loading weights. This is needed
             # to have test coverage on peak memory for online quantization.
             if current_platform.is_cuda():
-                peak_memory = torch.accelerator.max_memory_allocated()
+                try:
+                    peak_memory = torch.accelerator.max_memory_allocated()
+                except RuntimeError:
+                    free, total = torch.cuda.mem_get_info()
+                    peak_memory = total - free
                 logger.debug_once(
                     "Peak GPU memory after loading weights: %s GiB",
                     format_gib(peak_memory),

@@ -203,6 +203,11 @@ class Worker(WorkerBase):
             self.model_runner.init_fp8_kv_scales()
 
     def _maybe_get_memory_pool_context(self, tag: str) -> AbstractContextManager:
+        # UVM allocator: use cudaMallocManaged for weight loading only.
+        if tag == "weights" and envs.VLLM_USE_UVM_ALLOCATOR:
+            from vllm.device_allocator.uvm import uvm_memory_pool
+            return uvm_memory_pool()
+
         if not self.vllm_config.model_config.enable_sleep_mode:
             return nullcontext()
 
@@ -387,9 +392,12 @@ class Worker(WorkerBase):
         ) as profile_result:
             self.model_runner.profile_run()
 
-            profile_torch_peak = torch.accelerator.memory_stats(self.device).get(
-                "allocated_bytes.all.peak", 0
-            )
+            try:
+                profile_torch_peak = torch.accelerator.memory_stats(
+                    self.device).get("allocated_bytes.all.peak", 0)
+            except RuntimeError:
+                free, total = torch.cuda.mem_get_info(self.device)
+                profile_torch_peak = total - free
 
             # Profile CUDA graph memory if graphs will be captured.
             # Skip on ROCm/HIP as graph pool handles and mem_get_info behave

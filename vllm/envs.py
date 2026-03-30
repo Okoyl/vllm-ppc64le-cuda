@@ -246,6 +246,7 @@ if TYPE_CHECKING:
     VLLM_ELASTIC_EP_DRAIN_REQUESTS: bool = False
     VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS: bool = False
     VLLM_NIXL_EP_MAX_NUM_RANKS: int = 32
+    VLLM_USE_UVM_ALLOCATOR: bool = False
 
 
 def get_default_cache_root():
@@ -1638,6 +1639,12 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # NIXL EP environment variables
     "VLLM_NIXL_EP_MAX_NUM_RANKS": lambda: int(
         os.getenv("VLLM_NIXL_EP_MAX_NUM_RANKS", "32")
+    ),
+    # Use UVM (cudaMallocManaged) allocator for GPU memory oversubscription
+    # on systems with high-bandwidth CPU-GPU interconnects
+    # (IBM POWER9 NVLink, Grace Hopper).
+    "VLLM_USE_UVM_ALLOCATOR": lambda: bool(
+        int(os.getenv("VLLM_USE_UVM_ALLOCATOR", "0"))
     ),
 }
 
